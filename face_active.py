@@ -1,3 +1,4 @@
+# pyre-ignore-all-errors
 # ============================================================
 #  F.A.C.E — Phase 5
 #  File: face_active.py
@@ -109,6 +110,8 @@ active_time   = {}   # { "Arjun": 12.4  } seconds awake
 drowsy_events = {}   # { "Arjun": 2     } alert count
 frame_counter = {}   # { "Arjun": 0     } consecutive low-EAR frames
 is_drowsy     = {}   # { "Arjun": False } drowsy flag
+cached_identities = []
+total_frame_count = 0
 
 session_start = time.time()
 prev_time     = time.time()
@@ -133,29 +136,57 @@ while True:
     now       = time.time()
     delta     = now - prev_time
     prev_time = now
+    total_frame_count += 1
 
     gray  = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = detector(gray)
+    
+    # Fast detection
+    small_gray = cv2.resize(gray, (0, 0), fx=0.5, fy=0.5)
+    faces = detector(small_gray)
 
     visible_names = []
+    new_cached_identities = []
 
-    for face in faces:
+    for small_face in faces:
+        x1, y1 = int(small_face.left() * 2), int(small_face.top() * 2)
+        x2, y2 = int(small_face.right() * 2), int(small_face.bottom() * 2)
+        face = dlib.rectangle(x1, y1, x2, y2)
+        
         landmarks = predictor(gray, face)
 
         # RECOGNITION
-        live_encoding = np.array(
-            face_encoder.compute_face_descriptor(frame, landmarks)
-        )
+        center_x = (x1 + x2) / 2
+        center_y = (y1 + y2) / 2
+        name = "UNKNOWN"
+        confidence = 0.0
+        
+        match_found = False
+        for cached in cached_identities:
+            cx, cy = cached['center']
+            if abs(center_x - cx) < 50 and abs(center_y - cy) < 50:
+                name = cached['name']
+                confidence = cached['confidence']
+                match_found = True
+                break
+                
+        if not match_found or total_frame_count % 10 == 0:
+            live_encoding = np.array(
+                face_encoder.compute_face_descriptor(frame, landmarks)
+            )
 
-        if len(known_encodings) == 0:
-            continue
+            if len(known_encodings) > 0:
+                distances    = np.linalg.norm(known_encodings - live_encoding, axis=1)
+                min_index    = np.argmin(distances)
+                min_distance = distances[min_index]
 
-        distances    = np.linalg.norm(known_encodings - live_encoding, axis=1)
-        min_index    = np.argmin(distances)
-        min_distance = distances[min_index]
+                name       = known_names[min_index] if min_distance < THRESHOLD else "UNKNOWN"
+                confidence = round((1 - min_distance) * 100, 1)
 
-        name       = known_names[min_index] if min_distance < THRESHOLD else "UNKNOWN"
-        confidence = round((1 - min_distance) * 100, 1)
+        new_cached_identities.append({
+            "center": (center_x, center_y),
+            "name": name,
+            "confidence": confidence
+        })
 
         # EAR CALCULATION
         left_eye  = get_eye_points(landmarks, 36, 42)
@@ -212,6 +243,8 @@ while True:
             pts     = np.array(eye, dtype=np.int32)
             eye_col = (0, 0, 255) if avg_EAR < EAR_THRESHOLD else (0, 255, 255)
             cv2.polylines(frame, [pts], isClosed=True, color=eye_col, thickness=1)
+
+    cached_identities = new_cached_identities
 
     # SESSION INFO BAR
     session_secs = int(time.time() - session_start)

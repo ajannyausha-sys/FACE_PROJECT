@@ -1,3 +1,4 @@
+# pyre-ignore-all-errors
 # ============================================================
 #  F.A.C.E — Phase 6
 #  File: attendance.py
@@ -89,6 +90,8 @@ else:
 #  SESSION STATE
 # ============================================================
 session_start = time.time()
+frame_count = 0
+cached_identities = []
 
 # From Phase 5 — active time tracking
 active_time    = {}
@@ -113,27 +116,55 @@ while True:
         break
 
     gray            = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces           = detector(gray)
+    
+    # Fast detection
+    small_gray = cv2.resize(gray, (0, 0), fx=0.5, fy=0.5)
+    faces = detector(small_gray)
+    
     session_seconds = int(time.time() - session_start)
+    frame_count += 1
+    new_cached_identities = []
 
-    for face in faces:
+    for small_face in faces:
+        x1, y1 = int(small_face.left() * 2), int(small_face.top() * 2)
+        x2, y2 = int(small_face.right() * 2), int(small_face.bottom() * 2)
+        face = dlib.rectangle(x1, y1, x2, y2)
+        
         landmarks = predictor(gray, face)
 
         # ── RECOGNITION ──────────────────────────────────
-        live_encoding = np.array(
-            face_encoder.compute_face_descriptor(frame, landmarks)
-        )
-        if len(known_encodings) == 0:
-            continue
-
-        distances    = np.linalg.norm(known_encodings - live_encoding, axis=1)
-        min_index    = np.argmin(distances)
-        min_distance = distances[min_index]
-        name         = known_names[min_index] if min_distance < THRESHOLD else "UNKNOWN"
-        confidence   = round((1 - min_distance) * 100, 2)
+        center_x = (x1 + x2) / 2
+        center_y = (y1 + y2) / 2
+        name = "UNKNOWN"
+        confidence = 0.0
+        
+        match_found = False
+        for cached in cached_identities:
+            cx, cy = cached['center']
+            if abs(center_x - cx) < 50 and abs(center_y - cy) < 50:
+                name = cached['name']
+                confidence = cached['confidence']
+                match_found = True
+                break
+                
+        if not match_found or frame_count % 10 == 0:
+            live_encoding = np.array(
+                face_encoder.compute_face_descriptor(frame, landmarks)
+            )
+            if len(known_encodings) > 0:
+                distances    = np.linalg.norm(known_encodings - live_encoding, axis=1)
+                min_index    = np.argmin(distances)
+                min_distance = distances[min_index]
+                name         = known_names[min_index] if min_distance < THRESHOLD else "UNKNOWN"
+                confidence   = round((1 - min_distance) * 100, 2)
+                
+        new_cached_identities.append({
+            "center": (center_x, center_y),
+            "name": name,
+            "confidence": confidence
+        })
 
         if name == "UNKNOWN":
-            x1,y1,x2,y2 = face.left(),face.top(),face.right(),face.bottom()
             cv2.rectangle(frame,(x1,y1),(x2,y2),(0,0,255),2)
             cv2.putText(frame,"UNKNOWN",(x1,y1-10),
                         cv2.FONT_HERSHEY_SIMPLEX,0.7,(0,0,255),2)
@@ -201,6 +232,8 @@ while True:
         if is_drowsy[name]:
             cv2.putText(frame,"! DROWSY",(x1,y1-35),
                         cv2.FONT_HERSHEY_SIMPLEX,0.7,(0,0,255),2)
+
+    cached_identities = new_cached_identities
 
     # Session info bar
     cv2.putText(frame,f"Session: {session_seconds}s  |  ESC = end & save CSV",

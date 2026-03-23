@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #06141B;
+  --color-card: #0B1F2A;
+  --color-primary: #00E0C6;
+  --color-secondary: #1F8FFF;
+  --color-success: #22C55E;
+  --color-danger: #EF4444;
+  --color-warning: #FACC15;
+  --color-textPrimary: #E6F1F5;
+  --color-textSecondary: #7AA0B2;
+
+  --shadow-glow-primary: 0 0 15px rgba(0, 224, 198, 0.3);
+  --shadow-glow-secondary: 0 0 15px rgba(31, 143, 255, 0.3);
+  --shadow-glow-success: 0 0 15px rgba(34, 197, 129, 0.3);
+  --shadow-glow-danger: 0 0 15px rgba(239, 68, 68, 0.3);
+  --shadow-glow-warning: 0 0 15px rgba(250, 204, 21, 0.3);
+}
+
+@layer base {
+  body {
+    @apply bg-background text-textPrimary antialiased;
+    font-family: 'Inter', 'Poppins', sans-serif;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-card border border-white/10 backdrop-blur-md rounded-2xl transition-all duration-300;
+  }
+  
+  .glow-border-primary {
+    @apply border-primary/30 shadow-glow-primary hover:border-primary/60 hover:shadow-[0_0_20px_rgba(0,224,198,0.5)];
+  }
+
+  .glow-border-secondary {
+    @apply border-secondary/30 shadow-glow-secondary hover:border-secondary/60 hover:shadow-[0_0_20px_rgba(31,143,255,0.5)];
+  }
+}
