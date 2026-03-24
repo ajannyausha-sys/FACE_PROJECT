@@ -8,8 +8,8 @@
 import numpy as np # type: ignore
 from scipy.spatial import distance as dist # type: ignore
 
-EAR_THRESHOLD = 0.21   # Lowered from 0.25 to reduce false positives
-CONSEC_FRAMES = 8      # Increased from 4 for more stability at 3 FPS (~2.5s)
+EAR_THRESHOLD = 0.25   # Eyes closed: < 0.25, Eyes open: > 0.30
+CONSEC_FRAMES = 5      # Frames below threshold to trigger drowsiness (~1.6 seconds at 3 FPS)
 
 
 def calculate_EAR(eye_pts):
@@ -33,32 +33,47 @@ class DrowsinessTracker:
         self.frame_counter = {}   # consecutive low-EAR frames
         self.drowsy_events = {}   # total drowsy events
         self.is_drowsy     = {}   # current state
+        self.ear_history   = {}   # rolling EAR values for smoothing
 
     def init_person(self, name):
         if name not in self.frame_counter:
             self.frame_counter[name] = 0
             self.drowsy_events[name] = 0
             self.is_drowsy[name]     = False
+            self.ear_history[name]   = []
 
     def update(self, name, landmarks):
         """Update drowsiness state for a person. Returns (avg_EAR, is_drowsy)"""
         self.init_person(name)
 
-        left_eye  = get_eye_points(landmarks, 36, 42)
-        right_eye = get_eye_points(landmarks, 42, 48)
-        avg_EAR   = (calculate_EAR(left_eye) + calculate_EAR(right_eye)) / 2.0
+        try:
+            left_eye  = get_eye_points(landmarks, 36, 42)
+            right_eye = get_eye_points(landmarks, 42, 48)
+            avg_EAR   = (calculate_EAR(left_eye) + calculate_EAR(right_eye)) / 2.0
+        except Exception as e:
+            print(f"[DROWSY ERROR] Failed to calculate EAR for {name}: {e}")
+            return 0.0, False
 
-        if avg_EAR < EAR_THRESHOLD:
+        # Maintain rolling average for smoothing
+        self.ear_history[name].append(avg_EAR)
+        if len(self.ear_history[name]) > 5:  # Keep last 5 frames
+            self.ear_history[name].pop(0)
+        
+        # Use smoothed EAR
+        smoothed_EAR = np.mean(self.ear_history[name])
+
+        if smoothed_EAR < EAR_THRESHOLD:
             self.frame_counter[name] += 1
         else:
             if self.is_drowsy[name]:
                 self.is_drowsy[name] = False
+                print(f"[ALERT] {name} woke up! (EAR={avg_EAR:.2f})")
             self.frame_counter[name] = 0
 
         if self.frame_counter[name] >= CONSEC_FRAMES and not self.is_drowsy[name]:
             self.drowsy_events[name] += 1
             self.is_drowsy[name] = True
-            print(f"[DROWSY] {name} - drowsy event #{self.drowsy_events[name]}")
+            print(f"[DROWSY] {name} - DROWSY EVENT #{self.drowsy_events[name]} (EAR={avg_EAR:.2f})")
 
         return float(f"{avg_EAR:.3f}"), self.is_drowsy[name]
 

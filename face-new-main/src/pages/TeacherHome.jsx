@@ -181,16 +181,23 @@ export default function TeacherHome() {
               <div className="space-y-2">
                 <span className="text-xs font-bold text-textSecondary uppercase ml-1">Assign Faculty</span>
                 <select
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50 transition-all appearance-none cursor-pointer"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-textPrimary focus:outline-none focus:border-primary/50 transition-all appearance-none cursor-pointer hover:bg-white/10"
+                  style={{
+                    backgroundImage: "url('data:image/svg+xml;utf8,<svg fill=\"white\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M7 10l5 5 5-5z\"/></svg>')",
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 0.5rem center',
+                    backgroundSize: '1.5em 1.5em',
+                    paddingRight: '2.5rem'
+                  }}
                   value={teacherId}
                   onChange={(event) => setTeacherId(event.target.value)}
                   disabled={loadingTeachers || teachers.length === 0}
                 >
-                  {loadingTeachers && <option>Loading faculty data...</option>}
-                  {!loadingTeachers && teachers.length === 0 && <option>No faculty found</option>}
+                  {loadingTeachers && <option style={{backgroundColor: '#1a1a2e', color: '#00d4ff'}}>Loading faculty data...</option>}
+                  {!loadingTeachers && teachers.length === 0 && <option style={{backgroundColor: '#1a1a2e', color: '#00d4ff'}}>No faculty found</option>}
                   {!loadingTeachers &&
                     teachers.map((teacher) => (
-                      <option key={teacher.id} value={teacher.id}>
+                      <option key={teacher.id} value={teacher.id} style={{backgroundColor: '#1a1a2e', color: '#00d4ff'}}>
                         {teacher.name}
                       </option>
                     ))}

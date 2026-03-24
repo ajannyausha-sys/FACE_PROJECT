@@ -15,11 +15,11 @@ import TeacherHome from "./pages/TeacherHome";
 import TeacherAttendance from "./pages/TeacherAttendance";
 import TeacherStudents from "./pages/TeacherStudents";
 import TeacherManual from "./pages/TeacherManual";
-import Dashboard from "./pages/Dashboard";
 import StudentHome from "./pages/StudentHome";
 import StudentAttendance from "./pages/StudentAttendance";
 import StudentAbsence from "./pages/StudentAbsence";
 import StudentLeave from "./pages/StudentLeave";
+import StudentRegistration from "./pages/StudentRegistration";
 
 // Layouts & Components
 import TeacherLayout from "./layouts/TeacherLayout";
@@ -27,6 +27,7 @@ import StudentLayout from "./layouts/StudentLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicOnlyRoute from "./components/PublicOnlyRoute";
 import { AppStateProvider } from "./context/AppStateContext";
+import { SessionProvider } from "./context/SessionContext";
 import { auth, db, isFirebaseConfigured } from "./firebase";
 
 // Storage Keys
@@ -318,31 +319,33 @@ function App() {
 
   return (
     <AppStateProvider value={appState}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<PublicOnlyRoute><Signup /></PublicOnlyRoute>} />
-          <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
+      <SessionProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<PublicOnlyRoute><Signup /></PublicOnlyRoute>} />
+            <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
 
-          <Route path="/teacher" element={<ProtectedRoute role="teacher"><TeacherLayout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="home" replace />} />
-            <Route path="home" element={<TeacherHome />} />
-            <Route path="attendance" element={<TeacherAttendance />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="students" element={<TeacherStudents />} />
-            <Route path="manual" element={<TeacherManual />} />
-          </Route>
+            <Route path="/teacher" element={<ProtectedRoute role="teacher"><TeacherLayout /></ProtectedRoute>}>
+              <Route index element={<Navigate to="home" replace />} />
+              <Route path="home" element={<TeacherHome />} />
+              <Route path="attendance" element={<TeacherAttendance />} />
+              <Route path="students" element={<TeacherStudents />} />
+              <Route path="manual" element={<TeacherManual />} />
+              <Route path="registration" element={<StudentRegistration />} />
+            </Route>
 
-          <Route path="/student" element={<ProtectedRoute role="student"><StudentLayout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="home" replace />} />
-            <Route path="home" element={<StudentHome />} />
-            <Route path="attendance" element={<StudentAttendance />} />
-            <Route path="absence" element={<StudentAbsence />} />
-            <Route path="leave" element={<StudentLeave />} />
-          </Route>
+            <Route path="/student" element={<ProtectedRoute role="student"><StudentLayout /></ProtectedRoute>}>
+              <Route index element={<Navigate to="home" replace />} />
+              <Route path="home" element={<StudentHome />} />
+              <Route path="attendance" element={<StudentAttendance />} />
+              <Route path="absence" element={<StudentAbsence />} />
+              <Route path="leave" element={<StudentLeave />} />
+            </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </SessionProvider>
     </AppStateProvider>
   );
 }

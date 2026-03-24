@@ -38,3 +38,18 @@
     @apply border-secondary/30 shadow-glow-secondary hover:border-secondary/60 hover:shadow-[0_0_20px_rgba(31,143,255,0.5)];
   }
 }
+
+@keyframes scan {
+  0% {
+    top: -100%;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+@layer utilities {
+  .animate-scan {
+    animation: scan 3s linear infinite;
+  }
+}

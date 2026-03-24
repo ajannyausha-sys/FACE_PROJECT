@@ -26,6 +26,15 @@ export default {
       },
       backgroundImage: {
         'glass-gradient': 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%)',
+      },
+      animation: {
+        'scan': 'scan 3s linear infinite',
+      },
+      keyframes: {
+        scan: {
+          '0%': { top: '-100%' },
+          '100%': { top: '100%' },
+        }
       }
     },
   },

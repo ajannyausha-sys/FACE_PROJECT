@@ -8,12 +8,14 @@ import time
 import pandas as pd
 from datetime import datetime
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import base64
 import numpy as np
 import cv2
+import os
+from pathlib import Path
 
 from database.firebase_upload import init_firebase, upload_attendance
 from engine.ai_engine import engine
@@ -39,6 +41,12 @@ app.add_middleware(
 
 class FrameData(BaseModel):
     image: str
+
+class FaceSampleData(BaseModel):
+    studentName: str
+    rollNumber: str
+    department: str
+    samples: list  # List of base64 image strings
 
 @app.get("/")
 def root():
@@ -124,6 +132,82 @@ def end_session_api():
         "csvFile": csv_file,
         "message": "Session ended successfully."
     }
+
+@app.post("/api/save-face-samples")
+def save_face_samples(data: FaceSampleData):
+    """
+    Save captured face samples to dataset folder
+    Expected folder structure: dataset/{studentName}/image_1.jpg, image_2.jpg, etc.
+    """
+    try:
+        student_name = data.studentName.strip().replace(" ", "_")
+        roll_number = data.rollNumber.strip().upper()
+        samples = data.samples
+        
+        if not student_name or not roll_number or not samples:
+            return {
+                "success": False,
+                "message": "Missing required fields: studentName, rollNumber, or samples"
+            }
+        
+        if len(samples) != 5:
+            return {
+                "success": False,
+                "message": f"Expected 5 samples, got {len(samples)}"
+            }
+        
+        # Create dataset folder structure
+        dataset_path = Path("dataset") / student_name
+        dataset_path.mkdir(parents=True, exist_ok=True)
+        
+        saved_images = []
+        for idx, sample in enumerate(samples, 1):
+            try:
+                # Handle base64 data URL format
+                b64_string = sample
+                if b64_string.startswith("data:image"):
+                    b64_string = b64_string.split(",")[1]
+                
+                # Decode base64 to image
+                img_data = base64.b64decode(b64_string)
+                np_arr = np.frombuffer(img_data, np.uint8)
+                img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+                
+                if img is None:
+                    return {
+                        "success": False,
+                        "message": f"Failed to decode image sample {idx}"
+                    }
+                
+                # Save image
+                image_path = dataset_path / f"image_{idx}.jpg"
+                cv2.imwrite(str(image_path), img)
+                saved_images.append(str(image_path))
+                print(f"[FACE_SAMPLE] Saved: {image_path}")
+                
+            except Exception as e:
+                print(f"[FACE_SAMPLE ERROR] Failed to save sample {idx}: {e}")
+                return {
+                    "success": False,
+                    "message": f"Failed to save image sample {idx}: {str(e)}"
+                }
+        
+        return {
+            "success": True,
+            "message": f"Successfully saved 5 face samples for {student_name}",
+            "studentName": student_name,
+            "rollNumber": roll_number,
+            "folderPath": str(dataset_path),
+            "savedImages": saved_images,
+            "count": len(saved_images)
+        }
+        
+    except Exception as e:
+        print(f"[FACE_SAMPLE ERROR] {e}")
+        return {
+            "success": False,
+            "message": f"Error saving face samples: {str(e)}"
+        }
 
 if __name__ == "__main__":
     import uvicorn

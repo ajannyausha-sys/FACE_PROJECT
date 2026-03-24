@@ -71,8 +71,8 @@ export default function Signup() {
             <label className="field">
               <span>Role</span>
               <select value={role} onChange={(e) => setRole(e.target.value)}>
-                <option value="student">Student</option>
-                <option value="teacher">Teacher</option>
+                <option value="student" style={{backgroundColor: '#1a1a2e', color: '#00d4ff'}}>Student</option>
+                <option value="teacher" style={{backgroundColor: '#1a1a2e', color: '#00d4ff'}}>Teacher</option>
               </select>
             </label>
 

@@ -13,11 +13,12 @@ import {
   CheckCircle2, 
   XSquare, 
   Activity,
-  Maximize2
+  AlertTriangle,
+  Users
 } from "lucide-react";
 
 export default function TeacherAttendance() {
-  const { isFirebaseConfigured } = useAppState();
+  const { isFirebaseConfigured, students, attendance } = useAppState();
   const [engineStatus, setEngineStatus]   = useState("stopped"); // stopped | running | done
   const [results, setResults]             = useState([]);
   const [loading, setLoading]             = useState(false);
@@ -33,6 +34,14 @@ export default function TeacherAttendance() {
   const overlayCanvasRef = useRef(null);
   const streamRef = useRef(null);
   const frameInterval = useRef(null);
+
+  // Calculate stats
+  const stats = {
+    totalStudents: students.length,
+    present: results.filter(r => r.status === 'Present').length,
+    absent: Math.max(0, students.length - results.filter(r => r.status !== 'Absent').length),
+    drowsy: results.filter(r => r.isDrowsy).length,
+  };
 
   // ── Stop Camera & Engine ────────────────────────────────
   const stopEngine = async () => {
@@ -334,6 +343,163 @@ export default function TeacherAttendance() {
              )}
            </AnimatePresence>
         </div>
+      </motion.section>
+
+      {/* ── Attendance Panel with Stats ────────────────────── */}
+      <motion.section 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="space-y-6"
+      >
+        {/* Header */}
+        <div>
+          <h2 className="text-2xl font-bold text-textPrimary mb-1">ATTENDANCE PANEL</h2>
+          <p className="text-textSecondary text-sm">Computer Vision (CS401) - Real-time Student Attendance</p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="glass-card p-6 border-l-4 border-primary/50"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-textSecondary text-xs font-bold uppercase tracking-widest mb-2">Total Students</p>
+                <p className="text-4xl font-bold text-primary">{stats.totalStudents}</p>
+              </div>
+              <Users className="w-12 h-12 text-primary/30" />
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="glass-card p-6 border-l-4 border-success/50"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-textSecondary text-xs font-bold uppercase tracking-widest mb-2">Present</p>
+                <p className="text-4xl font-bold text-success">{stats.present}</p>
+              </div>
+              <CheckCircle2 className="w-12 h-12 text-success/30" />
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="glass-card p-6 border-l-4 border-danger/50"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-textSecondary text-xs font-bold uppercase tracking-widest mb-2">Absent</p>
+                <p className="text-4xl font-bold text-danger">{stats.absent}</p>
+              </div>
+              <XSquare className="w-12 h-12 text-danger/30" />
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="glass-card p-6 border-l-4 border-warning/50"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-textSecondary text-xs font-bold uppercase tracking-widest mb-2">Drowsy</p>
+                <p className="text-4xl font-bold text-warning">{stats.drowsy}</p>
+              </div>
+              <AlertTriangle className="w-12 h-12 text-warning/30" />
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Attendance Register Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="glass-card overflow-hidden"
+        >
+          <div className="p-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+            <h3 className="text-sm font-bold tracking-widest text-primary uppercase flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              ATTENDANCE REGISTER
+            </h3>
+            <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-textSecondary">
+              {results.length} RECORDS
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            {results.length === 0 ? (
+              <div className="p-20 text-center opacity-50">
+                <Users className="w-16 h-16 mx-auto mb-4" />
+                <p className="text-sm font-medium">No attendance records yet. Start a session to begin tracking.</p>
+              </div>
+            ) : (
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-white/5">
+                    <th className="px-6 py-4 text-[10px] font-bold text-textSecondary uppercase tracking-widest">Name</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-textSecondary uppercase tracking-widest">Roll No</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-textSecondary uppercase tracking-widest">Department</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-textSecondary uppercase tracking-widest">Time In</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-textSecondary uppercase tracking-widest">Active Time</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-textSecondary uppercase tracking-widest">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {results.map((record, idx) => (
+                    <motion.tr 
+                      key={idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="hover:bg-white/5 transition-colors group"
+                    >
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                            {record.name?.substring(0, 2).toUpperCase() || 'N/A'}
+                          </div>
+                          <span className="text-sm font-bold text-textPrimary group-hover:text-primary transition-colors">{record.name || 'N/A'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <code className="text-xs bg-white/5 px-2 py-1 rounded border border-white/10 font-mono text-primary">
+                          {record.rollNo || 'N/A'}
+                        </code>
+                      </td>
+                      <td className="px-6 py-5 text-sm text-textSecondary">{record.department || 'N/A'}</td>
+                      <td className="px-6 py-5 text-xs font-mono text-textSecondary">{record.timeIn || record.timeMarked || '--:--:--'}</td>
+                      <td className="px-6 py-5 text-xs font-mono text-textSecondary">{record.activeTime || '0m 0s'}</td>
+                      <td className="px-6 py-5">
+                        <span className={`px-3 py-1 rounded-lg text-[10px] font-bold flex w-fit items-center gap-1 ${
+                          record.isDrowsy === true
+                            ? 'bg-warning/10 text-warning border border-warning/20'
+                            : record.status === 'Present'
+                            ? 'bg-success/10 text-success border border-success/20'
+                            : 'bg-danger/10 text-danger border border-danger/20'
+                        }`}>
+                          {record.isDrowsy === true && <AlertTriangle className="w-3 h-3" />}
+                          {record.isDrowsy === true ? 'Drowsy' : record.status || 'N/A'}
+                        </span>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </motion.div>
       </motion.section>
 
       {/* ── View Past Attendance ─────────────────────── */}

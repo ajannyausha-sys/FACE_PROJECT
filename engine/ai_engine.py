@@ -169,10 +169,16 @@ class AIEngine:
             avg_EAR = 0.0
             is_drowsy = False
             if self.drowsiness:
-                avg_EAR, is_drowsy = self.drowsiness.update(name, landmarks)
+                try:
+                    avg_EAR, is_drowsy = self.drowsiness.update(name, landmarks)
+                    if is_drowsy:
+                        print(f"[AI ENGINE] {name} is DROWSY! EAR={avg_EAR:.2f}")
+                except Exception as e:
+                    print(f"[AI ENGINE ERROR] Drowsiness calculation failed for {name}: {e}")
             
             # Active time and Attendance logging
-            if avg_EAR >= 0.25:
+            # Count as "active" when eyes are sufficiently open (EAR > 0.22)
+            if avg_EAR >= 0.22:
                 self.active_time[name] += delta
                 
             self.recognition_time[name] += delta

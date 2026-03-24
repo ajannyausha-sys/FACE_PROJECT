@@ -20,9 +20,9 @@ const Sidebar = () => {
   const navigate = useNavigate();
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/teacher/dashboard' },
     { icon: Home, label: 'Home', path: '/teacher/home' },
-    { icon: Camera, label: 'AI Monitoring', path: '/teacher/attendance' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/teacher/attendance' },
+    { icon: UserPlus, label: 'Student Registration', path: '/teacher/registration' },
     { icon: Users, label: 'Students List', path: '/teacher/students' },
     { icon: ClipboardList, label: 'Manual Entry', path: '/teacher/manual' },
   ];
