@@ -1,0 +1,10 @@
+opencv-python
+dlib
+numpy
+pandas
+fastapi
+uvicorn
+pydantic
+scipy
+firebase-admin
+python-multipart

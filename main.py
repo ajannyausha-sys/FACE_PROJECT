@@ -19,12 +19,16 @@ from pathlib import Path
 
 from database.firebase_upload import init_firebase, upload_attendance
 from engine.ai_engine import engine
+from engine.face_encoder import load_encodings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("[MAIN] Starting F.A.C.E backend...")
-    init_firebase()
-    print("[MAIN] Backend API ready on port 5000.")
+    try:
+        init_firebase()
+        print("[MAIN] Backend API ready on port 5000.")
+    except Exception as e:
+        print(f"[MAIN WARNING] Firebase init failed: {e}. Attendance upload will be disabled.")
     yield
     print("[MAIN] Shutting down backend.")
 
@@ -72,6 +76,14 @@ def start_session():
         return {"success": False, "message": "Session already running"}
     engine.start_session()
     return {"success": True, "message": "Session started"}
+
+@app.post("/api/reload-encodings")
+def reload_encodings():
+    try:
+        engine.known_encodings, engine.known_names = load_encodings()
+        return {"success": True, "message": f"Loaded {len(engine.known_names)} encodings."}
+    except Exception as e:
+        return {"success": False, "message": f"Failed to reload encodings: {str(e)}"}
 
 @app.post("/api/recognize")
 def recognize_frame(data: FrameData):
@@ -192,6 +204,13 @@ def save_face_samples(data: FaceSampleData):
                     "message": f"Failed to save image sample {idx}: {str(e)}"
                 }
         
+        # Reload encodings after sample upload so recognition can use the new student immediately
+        try:
+            engine.known_encodings, engine.known_names = load_encodings()
+            print(f"[MAIN] Encodings reloaded: {len(engine.known_names)} identities")
+        except Exception as e:
+            print(f"[MAIN ERROR] Failed to reload encodings: {e}")
+
         return {
             "success": True,
             "message": f"Successfully saved 5 face samples for {student_name}",
